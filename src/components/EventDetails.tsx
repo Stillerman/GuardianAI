@@ -54,7 +54,7 @@ export default function EventDetails({ isOpen, onClose, event }: EventDetailsPro
 
             <div className="bg-gray-50 p-6 rounded-xl">
               <h3 className="text-lg font-semibold mb-4">AI Analysis</h3>
-              <p className="text-gray-700">{event.aiExplanation}</p>
+              <p className="text-gray-700">{event.description}</p>
             </div>
 
             <div className="flex justify-end space-x-4">

@@ -14,7 +14,7 @@ class ScreenMonitorApp(rumps.App):
         
         self.monitoring = False
         self.interval = 5  # Default interval in seconds
-        self.screenshot_dir = "./screenshots"
+        self.screenshot_dir = "/Users/kshitijaggarwal/Documents/Projects/austin_llama_hackathon/GuardianAI/screenshots/"
         self.api_url = "http://localhost:8000/analyze-screenshot/"
         
         # Create screenshots directory if it doesn't exist

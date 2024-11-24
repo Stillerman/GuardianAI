@@ -1,14 +1,17 @@
 import React from "react";
 import { AlertTriangle, Eye } from "lucide-react";
 import moment from "moment";
+// import { PlatformIcon } from './PlatformIcon';
+
+export type RiskLevel = 'low' | 'medium' | 'high' | 'all';
 
 interface Event {
   id: string;
-  type: string | string[];
+  type: string;
   riskLevel: string;
   timestamp: string;
   platform: string;
-  description: string;
+  aiExplanation: string;
 }
 
 const getRiskColor = (risk: string) => {
@@ -33,22 +36,20 @@ export function EventCard({
   event: Event;
   onClick: () => void;
 }) {
-  const displayType = Array.isArray(event.type) ? event.type[0] : event.type;
-
   return (
     <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow">
       <div className="p-6">
         <div className="flex items-start justify-between">
           <div className="flex items-start space-x-4">
-            <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center">
-              <AlertTriangle className="h-6 w-6 text-gray-500" />
-            </div>
+            {/* <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center">
+              <PlatformIcon platform={event.platform} />
+            </div> */}
             <div>
               <h3 className="text-lg font-semibold text-gray-900">
-                {displayType}
+                {event.type}
               </h3>
               <p className="text-sm text-gray-500">{event.platform}</p>
-              <p className="text-sm text-gray-600 mt-1">{event.description}</p>
+              <p className="text-sm text-gray-600 mt-1">{event.aiExplanation}</p>
             </div>
           </div>
           <span

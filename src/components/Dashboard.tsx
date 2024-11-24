@@ -2,6 +2,10 @@ import React from "react";
 import { AlertTriangle, CheckCircle, Eye, Shield } from "lucide-react";
 import { EventCard } from "./EventCard";
 import { RiskChart } from "./RiskChart";
+import { RiskFilter } from './RiskFilter';
+import { TimeFilter, type TimeRange } from './TimeFilter';
+import { useState } from "react";
+
 
 interface Alert {
   id: string;
@@ -18,32 +22,77 @@ interface DashboardProps {
   onEventClick: (id: string) => void;
 }
 
+
 export default function Dashboard({ alerts, onEventClick }: DashboardProps) {
-  const highRiskCount = alerts.filter(
+  const [selectedRisk, setSelectedRisk] = useState<RiskLevel>('all');
+  const [selectedTime, setSelectedTime] = useState<TimeRange>('all');
+
+  // Helper function to filter alerts by time
+  const filterByTime = (alert: Alert) => {
+    if (selectedTime === 'all') return true;
+    
+    const now = new Date();
+    const alertDate = new Date(alert.timestamp);
+    const diffDays = Math.floor((now.getTime() - alertDate.getTime()) / (1000 * 60 * 60 * 24));
+    
+    if (selectedTime === '7days') return diffDays <= 7;
+    if (selectedTime === '30days') return diffDays <= 30;
+    return true;
+  };
+
+  // Filter alerts by both risk and time
+  const filteredAlerts = alerts
+    .filter(filterByTime)
+    .filter(alert => {
+      if (selectedRisk === 'all') return true;
+      if (selectedRisk === 'low') {
+        return alert.riskLevel.toLowerCase() === 'low' || alert.riskLevel.toLowerCase() === 'none';
+      }
+      return alert.riskLevel.toLowerCase() === selectedRisk;
+    })
+    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+  // Calculate stats based on filtered alerts
+  const timeFilteredAlerts = alerts.filter(filterByTime);
+  const highRiskCount = timeFilteredAlerts.filter(
     (e) => e.riskLevel === "high" || e.riskLevel === "critical"
   ).length;
-  const mediumRiskCount = alerts.filter((e) => e.riskLevel === "medium").length;
-  const lowRiskCount = alerts.filter(
-    (e) => e.riskLevel === "low" || e.riskLevel === "none"
+  const mediumRiskCount = timeFilteredAlerts.filter(
+    (e) => e.riskLevel === "medium"
+  ).length;
+  const lowRiskCount = timeFilteredAlerts.filter(
+    (e) => e.riskLevel.toLowerCase() === "low" || e.riskLevel.toLowerCase() === "none"
   ).length;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-12">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-semibold text-gray-900">Dashboard</h1>
+        <TimeFilter 
+          selectedTime={selectedTime} 
+          onTimeChange={setSelectedTime} 
+        />
+      </div>
+      
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2">
           <div className="bg-white rounded-xl shadow-sm p-6 mb-8">
             <h2 className="text-lg font-semibold mb-4">Risk Overview</h2>
-            <RiskChart />
+            <RiskChart alerts={timeFilteredAlerts} />
+          </div>
+
+          <div className="mb-4">
+            <RiskFilter 
+              selectedRisk={selectedRisk} 
+              onRiskChange={setSelectedRisk} 
+            />
           </div>
 
           <div className="space-y-4">
-            {alerts.map((alert) => (
+            {filteredAlerts.map((alert) => (
               <EventCard
                 key={alert.id}
-                event={{
-                  ...alert,
-                  type: Array.isArray(alert.type) ? alert.type[0] : alert.type, // Use first type if array
-                }}
+                event={alert}
                 onClick={() => onEventClick(alert.id)}
               />
             ))}

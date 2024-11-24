@@ -1,12 +1,28 @@
 import React from 'react';
 
-export function RiskChart() {
-  const categories = [
-    { name: 'Social Media', count: 8, color: 'bg-blue-500' },
-    { name: 'Gaming', count: 5, color: 'bg-purple-500' },
-    { name: 'Search Engine', count: 3, color: 'bg-green-500' },
-    { name: 'Text Messages', count: 6, color: 'bg-yellow-500' },
-  ];
+interface RiskChartProps {
+  alerts: Array<{
+    type: string;
+    riskLevel: string;
+  }>;
+}
+
+export function RiskChart({ alerts }: RiskChartProps) {
+  // Count occurrences of each risk type
+  const riskTypeCounts = alerts
+    .filter(alert => alert.riskLevel.toLowerCase() !== 'none')
+    .reduce((acc, alert) => {
+      const type = alert.type;
+      acc[type] = (acc[type] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+  // Convert to array and sort by count
+  const categories = Object.entries(riskTypeCounts).map(([name, count]) => ({
+    name,
+    count,
+    color: getRiskTypeColor(name)
+  })).sort((a, b) => b.count - a.count);
 
   const maxCount = Math.max(...categories.map(c => c.count));
 
@@ -28,4 +44,22 @@ export function RiskChart() {
       ))}
     </div>
   );
+}
+
+// Helper function to assign colors to risk types
+function getRiskTypeColor(type: string): string {
+  const colorMap: Record<string, string> = {
+    'Explicit Content': 'bg-red-500',
+    'Violence': 'bg-orange-500',
+    'Substance Abuse': 'bg-yellow-500',
+    'Hate Speech': 'bg-purple-500',
+    'Grooming': 'bg-pink-500',
+    'Self Harm': 'bg-indigo-500',
+    'Cyberbullying': 'bg-blue-500',
+    'Dangerous Activities': 'bg-green-500',
+    'Psychological Distress': 'bg-teal-500',
+    'Misinformation': 'bg-cyan-500'
+  };
+
+  return colorMap[type] || 'bg-gray-500';
 }
