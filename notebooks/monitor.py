@@ -14,7 +14,7 @@ class ScreenMonitorApp(rumps.App):
         
         self.monitoring = False
         self.interval = 5  # Default interval in seconds
-        self.screenshot_dir = "/Users/kshitijaggarwal/Documents/Projects/austin_llama_hackathon/GuardianAI/screenshots/"
+        self.screenshot_dir = "./screenshots/"
         self.api_url = "http://localhost:8000/analyze-screenshot/"
         
         # Create screenshots directory if it doesn't exist
@@ -90,13 +90,6 @@ class ScreenMonitorApp(rumps.App):
                     
                     if response.status_code == 200:
                         result = response.json()
-                        # If high risk is detected, show notification
-                        if result.get('analysis_result', {}).get('risk') in ['high', 'critical']:
-                            rumps.notification(
-                                title="Alert",
-                                subtitle=f"Risk Level: {result['analysis_result']['risk']}",
-                                message=f"Types: {', '.join(result['analysis_result'].get('type', []))}"
-                            )
                     else:
                         print(f"Server error: {response.status_code}")
                         print(f"Response content: {response.text}")

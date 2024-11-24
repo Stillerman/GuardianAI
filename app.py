@@ -8,15 +8,16 @@ import os
 from typing import Dict, Any
 from utils import analyse_image
 import uuid
-from dotenv import load_dotenv
+from send_email import send_email
+# from dotenv import load_dotenv
 
-# firebase_cred_file = '/Users/jts/daily/GuardianAI/guardianai-661ca-firebase-adminsdk-5dvb3-622505f98b.json'
-# env_path = '/Users/jts/.openai'
+firebase_cred_file = '/Users/jts/daily/GuardianAI/guardianai-661ca-firebase-adminsdk-5dvb3-622505f98b.json'
+env_path = '/Users/jts/.openai'
 
-firebase_cred_file = '/Users/kshitijaggarwal/Documents/Projects/austin_llama_hackathon/guardianai-661ca-firebase-adminsdk-5dvb3-622505f98b.json'
-env_path = '/Users/kshitijaggarwal/Documents/Projects/.env'
+# firebase_cred_file = '/Users/kshitijaggarwal/Documents/Projects/austin_llama_hackathon/guardianai-661ca-firebase-adminsdk-5dvb3-622505f98b.json'
+# env_path = '/Users/kshitijaggarwal/Documents/Projects/.env'
 
-load_dotenv(env_path)
+# load_dotenv(env_path)
 
 summary_prompt = """
 Summarize this image. If it contains any text, return that too.
@@ -87,7 +88,7 @@ def image_to_base64(image_data: bytes) -> str:
     """Convert image bytes to base64 string"""
     return base64.b64encode(image_data).decode('utf-8')
 
-def map_risk_type(risk_types: list) -> str:
+def map_risk_type(risk_type) -> str:
     """Map the risk types to a single primary type"""
     # Define priority order for risk types
     type_priority = {
@@ -102,15 +103,8 @@ def map_risk_type(risk_types: list) -> str:
         "psychological_distress": "Psychological Distress",
         "misinformation": "Misinformation"
     }
-    
-    # Return the first matching type based on priority
-    res_type = []
-    for risk_type in risk_types:
-        if risk_type in type_priority:
-            res_type.append(type_priority[risk_type])
-        else:
-            res_type.append("Other")
-    return res_type # return the whole list or the first element?
+
+    return type_priority[risk_type] # return the whole list or the first element?
 
 def format_timestamp() -> str:
     """Return the current timestamp as a string"""
@@ -128,10 +122,10 @@ async def save_to_firebase(analysis_result: Dict[str, Any], summary, image_base6
     # Format the data according to the required structure
     data = {
         "id": doc_id,
-        "type": map_risk_type(analysis_result.get("type", [])),
+        "type": map_risk_type(analysis_result.get("type", "None")),
         "riskLevel": analysis_result.get("risk", "None"),
         "timestamp": format_timestamp(),
-        "platform": analysis_result.get("platform", "None"),  # or you could make this configurable
+        "platform": analysis_result.get("platform", "None"),
         "description": summary,
         "aiExplanation": analysis_result.get("explaination", "No detailed explanation provided"),
     }
@@ -140,8 +134,34 @@ async def save_to_firebase(analysis_result: Dict[str, Any], summary, image_base6
     doc_ref = db.collection('alerts').document(doc_id)
     doc_ref.set(data)
 
+    # Send email notification for high risk events
+    if analysis_result.get("risk", "").lower() == "high":
+        html_content = f"""
+        <html>
+            <body>
+                <h1>⚠️ High Risk Alert Detected</h1>
+                <p><strong>Alert ID:</strong> {doc_id}</p>
+                <p><strong>Risk Type:</strong> {', '.join(data['type'])}</p>
+                <p><strong>Platform:</strong> {data['platform']}</p>
+                <p><strong>Timestamp:</strong> {data['timestamp']}</p>
+                <p><strong>Description:</strong> {data['description']}</p>
+                <p><strong>AI Explanation:</strong> {data['aiExplanation']}</p>
+            </body>
+        </html>
+        """
+        
+        try:
+            send_email(
+                to_email="jason@fluencyai.net",
+                subject=f"🚨 High Risk Alert - {', '.join(data['type'])}",
+                html_content=html_content,
+                from_email="alerts@fluencyai.net"
+            )
+            print(f"Alert email sent for high risk event: {doc_id}")
+        except Exception as e:
+            print(f"Failed to send alert email: {str(e)}")
+
     print(f"Saved to Firebase with ID: {doc_id}")
-    
     return doc_id
 
 @app.post("/analyze-screenshot/")
