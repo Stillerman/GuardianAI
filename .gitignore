@@ -24,3 +24,11 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Environment variables
+.env
+POSTMARK_API_TOKEN
+
+__pycache__
+screenshot_*
+*-firebase-*.json
