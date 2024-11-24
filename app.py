@@ -8,11 +8,15 @@ import os
 from typing import Dict, Any
 from utils import analyse_image
 import uuid
+from dotenv import load_dotenv
 
-firebase_cred_file = '/Users/jts/daily/GuardianAI/guardianai-661ca-firebase-adminsdk-5dvb3-622505f98b.json'
-env_path = '/Users/jts/.openai'
+# firebase_cred_file = '/Users/jts/daily/GuardianAI/guardianai-661ca-firebase-adminsdk-5dvb3-622505f98b.json'
+# env_path = '/Users/jts/.openai'
 
-# load_dotenv(env_path)
+firebase_cred_file = '/Users/kshitijaggarwal/Documents/Projects/austin_llama_hackathon/guardianai-661ca-firebase-adminsdk-5dvb3-622505f98b.json'
+env_path = '/Users/kshitijaggarwal/Documents/Projects/.env'
+
+load_dotenv(env_path)
 
 summary_prompt = """
 Summarize this image. If it contains any text, return that too.
@@ -23,9 +27,11 @@ Please analyze this textual summary of an image for any content that could be ha
 Provide your assessment in the following JSON format:
 
 {{
-    "answer": string,        // "yes" or "no"
-    "risk": string,         // "none" | "low" | "medium" | "high" | "critical"
-    "type": string[],       // Array of identified risk types
+    "answer": string,       // "yes" or "no"
+    "risk": string,         // "None" | "low" | "medium" | "high"
+    "type": string,         // Identified risk type (the most relevant one)
+    "explaination": string, // One line explanation of contents of the image and risk
+    "platform": string      // Platform that is displayed in the image
 }}
 
 Risk Types:
@@ -40,12 +46,28 @@ Risk Types:
 - "psychological_distress": Frightening or traumatic content
 - "misinformation": Deliberately misleading content
 
+Also, identify the platform that is that is displayed in the image.
+Playform Types:
+- "Instagram"
+- "WhatsApp"
+- "Twitter"
+- "Facebook"
+- "TikTok"
+- "YouTube"
+- "Discord"
+- "Snapchat"
+- "Reddit"
+- "Twitch"
+- "imessage"
+- "Other"
+
 Example Response:
 {{
     "answer": "yes",
     "risk": "high",
-    "type": ["violence", "psychological_distress"],
+    "type": "violence",
     "explaination": "The image contains a man hurting an animal." 
+    "platform": "Instagram",
 }}
 
 It is possible to not have anything harmful in the text. 
@@ -150,16 +172,24 @@ async def analyze_screenshot(file: UploadFile = File(...)):
 
         print("Summary: ", summary)
         
-        print("Saving to Firebase...")  # Debug log
-        # Save to Firebase
-        doc_id = await save_to_firebase(analysis_result, summary, base64_image)
-        
-        # Return the results and Firebase document ID
-        return {
-            "status": "success",
-            "firebase_doc_id": doc_id,
-            "analysis_result": analysis_result
-        }
+        # Only save to Firebase if risk is not None
+        if analysis_result.get("risk", "None") != "None":
+            # print("Saving to Firebase...")  # Debug log
+            # Save to Firebase
+            doc_id = await save_to_firebase(analysis_result, summary, base64_image)
+            
+            # Return the results and Firebase document ID
+            return {
+                "status": "success", 
+                "firebase_doc_id": doc_id,
+                "analysis_result": analysis_result
+            }
+        else:
+            # Return just the analysis results if no risk detected
+            return {
+                "status": "success",
+                "analysis_result": analysis_result 
+            }
         
     except Exception as e:
         import traceback
