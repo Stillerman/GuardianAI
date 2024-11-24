@@ -5,6 +5,8 @@ from PIL import Image
 import pyautogui
 from io import BytesIO
 import os
+import requests
+import json
 
 class ScreenMonitorApp(rumps.App):
     def __init__(self):
@@ -13,6 +15,7 @@ class ScreenMonitorApp(rumps.App):
         self.monitoring = False
         self.interval = 5  # Default interval in seconds
         self.screenshot_dir = "./screenshots"
+        self.api_url = "http://localhost:8000/analyze-screenshot/"
         
         # Create screenshots directory if it doesn't exist
         os.makedirs(self.screenshot_dir, exist_ok=True)
@@ -48,8 +51,7 @@ class ScreenMonitorApp(rumps.App):
     def stop_monitoring(self):
         self.monitoring = False
         self.start_stop_button.title = "Start Capturing"
-        if self.monitor_thread:
-            self.monitor_thread.join()
+        self.monitor_thread = None
 
     def change_interval(self, sender):
         # Simple interval cycling: 5s -> 10s -> 30s -> 60s -> 5s
@@ -67,10 +69,40 @@ class ScreenMonitorApp(rumps.App):
                 # Take screenshot
                 screenshot = pyautogui.screenshot()
                 
-                # Save screenshot with timestamp
+                # Convert to RGB mode (required for JPEG)
+                rgb_screenshot = screenshot.convert('RGB')
+                
+                # Save to BytesIO object
+                img_byte_arr = BytesIO()
+                rgb_screenshot.save(img_byte_arr, format='JPEG', quality=85)
+                img_byte_arr.seek(0)
+                
+                # Save locally with timestamp
                 timestamp = time.strftime("%Y%m%d-%H%M%S")
                 filename = os.path.join(self.screenshot_dir, f"screenshot_{timestamp}.jpg")
-                screenshot.save(filename, "JPEG", quality=85)
+                with open(filename, 'wb') as f:
+                    f.write(img_byte_arr.getvalue())
+                
+                # Send to server
+                try:
+                    files = {'file': ('screenshot.jpg', img_byte_arr, 'image/jpeg')}
+                    response = requests.post(self.api_url, files=files)
+                    
+                    if response.status_code == 200:
+                        result = response.json()
+                        # If high risk is detected, show notification
+                        if result.get('analysis_result', {}).get('risk') in ['high', 'critical']:
+                            rumps.notification(
+                                title="Alert",
+                                subtitle=f"Risk Level: {result['analysis_result']['risk']}",
+                                message=f"Types: {', '.join(result['analysis_result'].get('type', []))}"
+                            )
+                    else:
+                        print(f"Server error: {response.status_code}")
+                        print(f"Response content: {response.text}")
+                
+                except requests.exceptions.RequestException as e:
+                    print(f"Failed to send to server: {e}")
                 
             except Exception as e:
                 print(f"Error taking screenshot: {e}")

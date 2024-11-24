@@ -1,6 +1,7 @@
 from groq import Groq
 import base64
 import os 
+import json
 
 def encode_image(image_path):
   with open(image_path, "rb") as image_file:
@@ -55,7 +56,10 @@ def run_llm(prompt, base64_image, model, return_json=False):
         response_format=response_format
     )
 
-    return completion.choices[0].message.content
+    if return_json:
+        return json.loads(completion.choices[0].message.content)
+    else:
+        return completion.choices[0].message.content
 
 def analyse_image(image, summary_prompt, harm_prompt, 
                   summary_llm='llama-3.2-90b-vision-preview', 

@@ -9,10 +9,10 @@ from typing import Dict, Any
 from utils import analyse_image
 import uuid
 
-firebase_cred_file = '/Users/kshitijaggarwal/Documents/Projects/austin_llama_hackathon/guardianai-661ca-firebase-adminsdk-5dvb3-622505f98b.json'
-env_path = '/Users/kshitijaggarwal/Documents/Projects/.env'
+firebase_cred_file = '/Users/jts/daily/GuardianAI/guardianai-661ca-firebase-adminsdk-5dvb3-622505f98b.json'
+env_path = '/Users/jts/.openai'
 
-load_dotenv(env_path)
+# load_dotenv(env_path)
 
 summary_prompt = """
 Summarize this image. If it contains any text, return that too.
@@ -117,6 +117,8 @@ async def save_to_firebase(analysis_result: Dict[str, Any], summary, image_base6
     # Add to Firestore
     doc_ref = db.collection('alerts').document(doc_id)
     doc_ref.set(data)
+
+    print(f"Saved to Firebase with ID: {doc_id}")
     
     return doc_id
 
@@ -127,11 +129,16 @@ async def analyze_screenshot(file: UploadFile = File(...)):
     """
     try:
         # Read the image file
+        print("Reading file...")  # Debug log
         contents = await file.read()
         
+        print(f"File size: {len(contents)} bytes")  # Debug log
+        
         # Convert to base64
+        print("Converting to base64...")  # Debug log
         base64_image = image_to_base64(contents)
         
+        print("Analyzing image...")  # Debug log
         # Analyze image using your existing function
         summary, analysis_result = analyse_image(
             base64_image,
@@ -141,6 +148,7 @@ async def analyze_screenshot(file: UploadFile = File(...)):
             harm_llm='llama-3.1-8b-instant'
         )
         
+        print("Saving to Firebase...")  # Debug log
         # Save to Firebase
         doc_id = await save_to_firebase(analysis_result, summary, base64_image)
         
@@ -152,9 +160,13 @@ async def analyze_screenshot(file: UploadFile = File(...)):
         }
         
     except Exception as e:
+        import traceback
+        print(f"Error processing image: {str(e)}")
+        print("Traceback:")
+        print(traceback.format_exc())  # This will print the full stack trace
         raise HTTPException(
             status_code=500,
-            detail=f"Error processing image: {str(e)}"
+            detail=f"Error processing image: {str(e)}\n{traceback.format_exc()}"
         )
 
 # Example of how to run the server
@@ -162,9 +174,9 @@ if __name__ == "__main__":
     import uvicorn
     
     # Load environment variables if needed
-    from dotenv import load_dotenv
-    env_path = '/Users/kshitijaggarwal/Documents/Projects/.env'
-    load_dotenv(env_path)
+    # from dotenv import load_dotenv
+    # env_path = '/Users/jts/.openai'
+    # load_dotenv(env_path)
     
     # Run the server
     uvicorn.run(app, host="0.0.0.0", port=8000)
