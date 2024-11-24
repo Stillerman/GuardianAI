@@ -7,9 +7,9 @@ import NotificationPanel from "./components/NotificationPanel";
 import EventDetails from "./components/EventDetails";
 import { mockNotifications } from "./data/mockData";
 
-interface Event {
+interface Alert {
   id: string;
-  type: string;
+  type: string[];
   riskLevel: string;
   timestamp: string;
   platform: string;
@@ -19,25 +19,25 @@ interface Event {
 
 function App() {
   const [isNotificationPanelOpen, setIsNotificationPanelOpen] = useState(false);
-  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
-  const [events, setEvents] = useState<Event[]>([]);
+  const [selectedEvent, setSelectedEvent] = useState<Alert | null>(null);
+  const [alerts, setAlerts] = useState<Alert[]>([]);
 
   useEffect(() => {
-    // Set up real-time listener
-    const unsubscribe = onSnapshot(collection(db, "events"), (snapshot) => {
-      const eventData: Event[] = [];
+    // Set up real-time listener for alerts collection instead of events
+    const unsubscribe = onSnapshot(collection(db, "alerts"), (snapshot) => {
+      const alertData: Alert[] = [];
       snapshot.forEach((doc) => {
-        eventData.push({ id: doc.id, ...doc.data() } as Event);
+        alertData.push({ id: doc.id, ...doc.data() } as Alert);
       });
-      setEvents(eventData);
+      setAlerts(alertData);
     });
 
     return () => unsubscribe();
   }, []);
 
   const handleEventClick = (id: string) => {
-    const event = events.find((e) => e.id === id);
-    setSelectedEvent(event || null);
+    const alert = alerts.find((e) => e.id === id);
+    setSelectedEvent(alert || null);
   };
 
   return (
@@ -45,7 +45,7 @@ function App() {
       <Header onNotificationClick={() => setIsNotificationPanelOpen(true)} />
 
       <main>
-        <Dashboard events={events} onEventClick={handleEventClick} />
+        <Dashboard alerts={alerts} onEventClick={handleEventClick} />
       </main>
 
       <NotificationPanel

@@ -147,6 +147,8 @@ async def analyze_screenshot(file: UploadFile = File(...)):
             summary_llm='llama-3.2-90b-vision-preview',
             harm_llm='llama-3.1-8b-instant'
         )
+
+        print("Summary: ", summary)
         
         print("Saving to Firebase...")  # Debug log
         # Save to Firebase

@@ -2,14 +2,10 @@ import React from "react";
 import { AlertTriangle, CheckCircle, Eye, Shield } from "lucide-react";
 import { EventCard } from "./EventCard";
 import { RiskChart } from "./RiskChart";
-import { collection } from "firebase/firestore";
-import { db } from "../config/firebase";
-import { addDoc } from "firebase/firestore";
-import { getRandomMockEvent, mockEvents } from "../data/mockData";
 
-interface Event {
+interface Alert {
   id: string;
-  type: string;
+  type: string[]; // Changed to array
   riskLevel: string;
   timestamp: string;
   platform: string;
@@ -18,26 +14,18 @@ interface Event {
 }
 
 interface DashboardProps {
-  events: Event[];
+  alerts: Alert[];
   onEventClick: (id: string) => void;
 }
 
-export default function Dashboard({ events, onEventClick }: DashboardProps) {
-  const highRiskCount = events.filter((e) => e.riskLevel === "high").length;
-  const mediumRiskCount = events.filter((e) => e.riskLevel === "medium").length;
-  const resolvedCount = events.filter((e) => e.riskLevel === "low").length;
-
-  const handleAddMockData = async () => {
-    try {
-      const eventsCollection = collection(db, "events");
-      // Add each mock event to Firestore
-      addDoc(eventsCollection, getRandomMockEvent());
-
-      console.log("Mock data added successfully!");
-    } catch (error) {
-      console.error("Error adding mock data:", error);
-    }
-  };
+export default function Dashboard({ alerts, onEventClick }: DashboardProps) {
+  const highRiskCount = alerts.filter(
+    (e) => e.riskLevel === "high" || e.riskLevel === "critical"
+  ).length;
+  const mediumRiskCount = alerts.filter((e) => e.riskLevel === "medium").length;
+  const lowRiskCount = alerts.filter(
+    (e) => e.riskLevel === "low" || e.riskLevel === "none"
+  ).length;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-12">
@@ -49,11 +37,14 @@ export default function Dashboard({ events, onEventClick }: DashboardProps) {
           </div>
 
           <div className="space-y-4">
-            {events.map((event) => (
+            {alerts.map((alert) => (
               <EventCard
-                key={event.id}
-                event={event}
-                onClick={() => onEventClick(event.id)}
+                key={alert.id}
+                event={{
+                  ...alert,
+                  type: Array.isArray(alert.type) ? alert.type[0] : alert.type, // Use first type if array
+                }}
+                onClick={() => onEventClick(alert.id)}
               />
             ))}
           </div>
@@ -91,21 +82,12 @@ export default function Dashboard({ events, onEventClick }: DashboardProps) {
                 <div className="flex items-center space-x-3">
                   <CheckCircle className="h-5 w-5 text-green-500" />
                   <span className="text-sm font-medium text-green-700">
-                    Resolved
+                    Low Risk
                   </span>
                 </div>
                 <span className="text-lg font-bold text-green-700">
-                  {resolvedCount}
+                  {lowRiskCount}
                 </span>
-              </div>
-
-              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-                <button
-                  onClick={handleAddMockData}
-                  className="mb-4 mt-10 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
-                >
-                  Add Mock Data to Firestore
-                </button>
               </div>
             </div>
           </div>

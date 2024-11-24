@@ -4,20 +4,22 @@ import moment from "moment";
 
 interface Event {
   id: string;
-  type: string;
-  riskLevel: "low" | "medium" | "high";
+  type: string | string[];
+  riskLevel: string;
   timestamp: string;
   platform: string;
   description: string;
 }
 
 const getRiskColor = (risk: string) => {
-  switch (risk) {
+  switch (risk.toLowerCase()) {
+    case "critical":
     case "high":
       return "bg-red-100 text-red-800";
     case "medium":
       return "bg-yellow-100 text-yellow-800";
     case "low":
+    case "none":
       return "bg-green-100 text-green-800";
     default:
       return "bg-gray-100 text-gray-800";
@@ -31,6 +33,8 @@ export function EventCard({
   event: Event;
   onClick: () => void;
 }) {
+  const displayType = Array.isArray(event.type) ? event.type[0] : event.type;
+
   return (
     <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow">
       <div className="p-6">
@@ -41,7 +45,7 @@ export function EventCard({
             </div>
             <div>
               <h3 className="text-lg font-semibold text-gray-900">
-                {event.type}
+                {displayType}
               </h3>
               <p className="text-sm text-gray-500">{event.platform}</p>
               <p className="text-sm text-gray-600 mt-1">{event.description}</p>
@@ -62,9 +66,6 @@ export function EventCard({
             {moment(event.timestamp).fromNow()}
           </span>
           <div className="flex space-x-2">
-            <button className="px-3 py-1 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md transition-colors">
-              Mark Safe
-            </button>
             <button
               onClick={onClick}
               className="px-3 py-1 text-sm font-medium text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors flex items-center space-x-1"
